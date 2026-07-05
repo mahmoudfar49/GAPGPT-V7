@@ -1,59 +1,73 @@
-/**
- * GAPGPT V7 - Security Configuration
- * Single Source of Truth for all system parameters.
- * Version: 2.1 (Production-Grade)
- */
+import { deepFreeze } from "../core/deepFreeze.js";
+
+export type BackoffStrategy =
+  | "Fixed"
+  | "Linear"
+  | "Exponential"
+  | "FullJitter";
 
 export interface RateLimitConfig {
-    maxRequests: number;
-    intervalMs: number;
-    parallelism: number;
-    waitIntervalMs: number;
-    timeoutMs: number;
+  readonly maxRequests: number;
+  readonly intervalMs: number;
+  readonly parallelism: number;
+  readonly waitIntervalMs: number;
+  readonly timeoutMs: number;
 }
 
 export interface RetryConfig {
-    maxRetries: number;
-    delayMs: number;
+  readonly maxAttempts: number;
+  readonly baseDelayMs: number;
+  readonly maxDelayMs: number;
+  readonly strategy: BackoffStrategy;
 }
 
 export interface CircuitBreakerConfig {
-    failureThreshold: number;
-    resetTimeoutMs: number;
+  readonly failureThreshold: number;
+  readonly resetTimeoutMs: number;
 }
 
 export interface CacheConfig {
-    defaultTtlMs: number;
+  readonly defaultTtlMs: number;
 }
 
 export interface HealthMonitorConfig {
-    checkIntervalMs: number;
+  readonly checkIntervalMs: number;
 }
 
-export const SecurityConfig = Object.freeze({
-    rateLimit: {
-        maxRequests: 1,
-        intervalMs: 800,
-        parallelism: 1,
-        waitIntervalMs: 100,
-        timeoutMs: 5000,
-    } as RateLimitConfig,
+export interface SecurityConfigSchema {
+  readonly rateLimit: RateLimitConfig;
+  readonly retry: RetryConfig;
+  readonly circuitBreaker: CircuitBreakerConfig;
+  readonly cache: CacheConfig;
+  readonly healthMonitor: HealthMonitorConfig;
+}
 
-    retry: {
-        maxRetries: 3,
-        delayMs: 1000,
-    } as RetryConfig,
+export const SecurityConfig: Readonly<SecurityConfigSchema> = deepFreeze({
+  rateLimit: {
+    maxRequests: 1,
+    intervalMs: 800,
+    parallelism: 1,
+    waitIntervalMs: 100,
+    timeoutMs: 5000,
+  },
 
-    circuitBreaker: {
-        failureThreshold: 5,
-        resetTimeoutMs: 30000,
-    } as CircuitBreakerConfig,
+  retry: {
+    maxAttempts: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 30000,
+    strategy: "FullJitter",
+  },
 
-    cache: {
-        defaultTtlMs: 60000,
-    } as CacheConfig,
+  circuitBreaker: {
+    failureThreshold: 5,
+    resetTimeoutMs: 30000,
+  },
 
-    healthMonitor: {
-        checkIntervalMs: 5000,
-    } as HealthMonitorConfig,
+  cache: {
+    defaultTtlMs: 60000,
+  },
+
+  healthMonitor: {
+    checkIntervalMs: 5000,
+  },
 });

@@ -2,23 +2,18 @@
   "name": "gapgpt-v7",
   "version": "0.1.0",
   "description": "GAPGPT V7 Market Intelligence Platform",
-
   "type": "module",
-
   "main": "dist/index.js",
-
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest"
   },
-
   "author": "Mahmoud & ChatGPT",
-
   "license": "Private",
-
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.0",
     "eslint": "^9.39.4",
     "jest": "^29.7.0",
     "prettier": "^3.9.4",

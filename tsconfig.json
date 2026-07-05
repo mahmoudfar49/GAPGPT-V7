@@ -1,15 +1,14 @@
 {
   "compilerOptions": {
-    /* =====================================
-       GAPGPT V7 - TypeScript Configuration
-       ===================================== */
-
     /* Runtime */
     "target": "ES2022",
 
-    /* Node.js 23 + TypeScript 6.x */
+    /* Node.js */
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+
+    /* Node Types */
+    "types": ["node"],
 
     /* Project Structure */
     "rootDir": "./src",

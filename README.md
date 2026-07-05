@@ -1,5 +1,12 @@
-\# GAPGPT V7
+# GAPGPT V7
 
+Private Market Intelligence Platform
+
+Status: Internal Development
+
+Owner: Mahmoud Farzaei
+
+This repository is private and intended for personal development only.
 
 
 Market Intelligence Platform for the Iran Capital Market

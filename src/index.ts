@@ -1,28 +1,38 @@
-import { RateLimiter } from "./infrastructure/RateLimiter.js";
+import { runRateLimiterTest } from "./test/rateLimiter.test.js";
+import { runRetryEngineTest } from "./test/retryEngine.test.js";
+
+type AsyncTest = () => Promise<void>;
 
 async function main(): Promise<void> {
+  const startedAt = Date.now();
 
-    const limiter = new RateLimiter();
+  console.log("========== GAPGPT V7 Test Runner ==========");
+  console.log(`Started : ${new Date(startedAt).toISOString()}`);
 
-    console.log("========== TEST START ==========");
+  const testSuite: ReadonlyArray<AsyncTest> = [
+    runRateLimiterTest,
+    runRetryEngineTest,
+  ];
 
-    console.log("Available:", limiter.getAvailableTokens());
+  for (const test of testSuite) {
+    await test();
+  }
 
-    console.log("Consume #1:", limiter.consume());
+  const finishedAt = Date.now();
 
-    console.log("Available:", limiter.getAvailableTokens());
-
-    console.log("Consume #2:", limiter.consume());
-
-    console.log("Waiting for token...");
-
-    await limiter.waitForToken();
-
-    console.log("Token received.");
-
-    console.log("Available:", limiter.getAvailableTokens());
-
-    console.log("========== TEST END ==========");
+  console.log("\n=============== ALL TESTS PASSED ===============");
+  console.log(`Finished : ${new Date(finishedAt).toISOString()}`);
+  console.log(`Execution completed in ${finishedAt - startedAt}ms`);
 }
 
-main().catch(console.error);
+main().catch((error: unknown) => {
+  const finalError =
+    error instanceof Error
+      ? error
+      : new Error(String(error));
+
+  console.error("\n❌ Test execution failed:");
+  console.error(finalError.stack ?? finalError.message);
+
+  process.exit(1);
+});
