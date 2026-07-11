@@ -1,38 +1,75 @@
+// ============================================================
+// GAPGPT V7
+// Main Entry
+// Commit 4.1 Stable
+// ============================================================
+
 import { runRateLimiterTest } from "./test/rateLimiter.test.js";
 import { runRetryEngineTest } from "./test/retryEngine.test.js";
-
-type AsyncTest = () => Promise<void>;
+import { runBackupManagerTest } from "./test/backupManager.test.js";
 
 async function main(): Promise<void> {
-  const startedAt = Date.now();
 
-  console.log("========== GAPGPT V7 Test Runner ==========");
-  console.log(`Started : ${new Date(startedAt).toISOString()}`);
+  const args = process.argv.slice(2);
 
-  const testSuite: ReadonlyArray<AsyncTest> = [
-    runRateLimiterTest,
-    runRetryEngineTest,
-  ];
+  //----------------------------------------------------------
+  // Run Backup Test Only
+  //----------------------------------------------------------
 
-  for (const test of testSuite) {
-    await test();
+  if (args.includes("--backup")) {
+
+    console.log();
+    console.log("======================================");
+    console.log("Running BackupManager Tests");
+    console.log("======================================");
+    console.log();
+
+    await runBackupManagerTest();
+
+    console.log();
+    console.log("BackupManager completed successfully.");
+    console.log();
+
+    return;
   }
 
-  const finishedAt = Date.now();
+  //----------------------------------------------------------
+  // Run All Tests
+  //----------------------------------------------------------
 
-  console.log("\n=============== ALL TESTS PASSED ===============");
-  console.log(`Finished : ${new Date(finishedAt).toISOString()}`);
-  console.log(`Execution completed in ${finishedAt - startedAt}ms`);
+  console.log();
+  console.log("======================================");
+  console.log("GAPGPT V7 - Commit 4 Test Suite");
+  console.log("======================================");
+  console.log();
+
+  await runRateLimiterTest();
+
+  console.log();
+
+  await runRetryEngineTest();
+
+  console.log();
+
+  await runBackupManagerTest();
+
+  console.log();
+
+  console.log("======================================");
+  console.log("All tests completed successfully.");
+  console.log("======================================");
+  console.log();
 }
 
-main().catch((error: unknown) => {
-  const finalError =
-    error instanceof Error
-      ? error
-      : new Error(String(error));
+main().catch((error) => {
 
-  console.error("\n❌ Test execution failed:");
-  console.error(finalError.stack ?? finalError.message);
+  console.error();
+  console.error("======================================");
+  console.error("Fatal Error");
+  console.error("======================================");
+  console.error(error);
+  console.error();
 
   process.exit(1);
+
 });

@@ -1,73 +1,72 @@
-import { deepFreeze } from "../core/deepFreeze.js";
+// ============================================================
+// GAPGPT V7
+// Security Configuration - Production Stable & Fixed
+// Commit 4.1 Stable
+// ============================================================
 
-export type BackoffStrategy =
-  | "Fixed"
-  | "Linear"
-  | "Exponential"
-  | "FullJitter";
+export type BackoffStrategy = "exponential" | "linear" | "fixed";
+export type BackupMode = "manual" | "scheduled" | "triggered";
 
-export interface RateLimitConfig {
-  readonly maxRequests: number;
-  readonly intervalMs: number;
-  readonly parallelism: number;
-  readonly waitIntervalMs: number;
-  readonly timeoutMs: number;
+export interface BackupDestination {
+  readonly id: string;
+  readonly path: string;
+  readonly enabled: boolean;
 }
 
-export interface RetryConfig {
-  readonly maxAttempts: number;
-  readonly baseDelayMs: number;
-  readonly maxDelayMs: number;
-  readonly strategy: BackoffStrategy;
-}
-
-export interface CircuitBreakerConfig {
-  readonly failureThreshold: number;
-  readonly resetTimeoutMs: number;
-}
-
-export interface CacheConfig {
-  readonly defaultTtlMs: number;
-}
-
-export interface HealthMonitorConfig {
-  readonly checkIntervalMs: number;
+export interface BackupConfig {
+  readonly enabled: boolean;
+  readonly rootDirectory: string;
+  readonly compressionFormat: "zip";
+  readonly destinations: readonly BackupDestination[];
+  readonly retention: {
+    readonly maxBackups: number;
+  };
 }
 
 export interface SecurityConfigSchema {
-  readonly rateLimit: RateLimitConfig;
-  readonly retry: RetryConfig;
-  readonly circuitBreaker: CircuitBreakerConfig;
-  readonly cache: CacheConfig;
-  readonly healthMonitor: HealthMonitorConfig;
+  readonly rateLimit: {
+    readonly maxRequests: number;
+    readonly intervalMs: number;
+    readonly parallelism: number;
+    readonly waitIntervalMs: number;
+    readonly timeoutMs: number;
+  };
+  readonly retry: {
+    readonly maxAttempts: number;
+    readonly baseDelayMs: number;
+    readonly maxDelayMs: number;
+    readonly strategy: BackoffStrategy;
+  };
+  readonly backup: BackupConfig;
 }
 
-export const SecurityConfig: Readonly<SecurityConfigSchema> = deepFreeze({
+export const SecurityConfig: SecurityConfigSchema = Object.freeze({
   rateLimit: {
-    maxRequests: 1,
-    intervalMs: 800,
-    parallelism: 1,
-    waitIntervalMs: 100,
-    timeoutMs: 5000,
+    maxRequests: 100,
+    intervalMs: 60000,
+    parallelism: 5,
+    waitIntervalMs: 1000,
+    timeoutMs: 30000,
   },
-
   retry: {
-    maxAttempts: 3,
+    maxAttempts: 5,
     baseDelayMs: 1000,
-    maxDelayMs: 30000,
-    strategy: "FullJitter",
+    maxDelayMs: 10000,
+    strategy: "exponential" as BackoffStrategy, // ✅ Fix: Explicit type casting
   },
-
-  circuitBreaker: {
-    failureThreshold: 5,
-    resetTimeoutMs: 30000,
-  },
-
-  cache: {
-    defaultTtlMs: 60000,
-  },
-
-  healthMonitor: {
-    checkIntervalMs: 5000,
+  backup: {
+    enabled: true,
+    rootDirectory: "./backups",
+    compressionFormat: "zip" as "zip", // ✅ Fix: Cast to literal "zip" to prevent generic string assignment error
+    destinations: [
+      { id: "local-main", path: "./backups/main", enabled: true },
+      { id: "local-remote", path: "./backups/remote", enabled: false }
+    ],
+    retention: {
+      maxBackups: 10,
+    },
   },
 });
+
+// ✅ Fix: Exporting legacy type alias for compatibility with old components/tests
+export type RetryConfig = SecurityConfigSchema["retry"];

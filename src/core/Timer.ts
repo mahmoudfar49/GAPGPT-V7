@@ -1,22 +1,19 @@
-/**
- * Lightweight timing utilities used across the platform.
- *
- * Future extensions (Commit 6+):
- * - Abortable sleep
- * - Timeout helpers
- * - High-resolution timing
- */
+// =====================================
+// GAPGPT V7 - Timer Utility
+// Commit 4.1
+// =====================================
+
 export class Timer {
-  /**
-   * Suspends asynchronous execution for the specified duration.
-   */
-  public static sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  private constructor() {
+    // Prevent instantiation
   }
 
-  /**
-   * Returns the current Unix timestamp in milliseconds.
-   */
+  public static async sleep(ms: number): Promise<void> {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  }
+
   public static now(): number {
     return Date.now();
   }

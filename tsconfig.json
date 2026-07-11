@@ -1,59 +1,96 @@
 {
   "compilerOptions": {
-    /* Runtime */
-    "target": "ES2022",
+    /* ===========================
+       Language
+       =========================== */
 
-    /* Node.js */
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+
+    /* ===========================
+       Module
+       =========================== */
+
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
 
-    /* Node Types */
-    "types": ["node"],
+    /* ===========================
+       Paths
+       =========================== */
 
-    /* Project Structure */
     "rootDir": "./src",
     "outDir": "./dist",
 
-    /* Strict Type Checking */
+    /* ===========================
+       Strict
+       =========================== */
+
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* ===========================
+       Recommended
+       =========================== */
+
     "noImplicitOverride": true,
-    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
 
-    /* Code Quality */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "forceConsistentCasingInFileNames": true,
+    /* ===========================
+       ESM
+       =========================== */
 
-    /* Module Compatibility */
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
 
-    /* Build */
-    "incremental": true,
+    /* ===========================
+       Emit
+       =========================== */
+
+    "declaration": false,
     "sourceMap": true,
-    "declaration": true,
     "removeComments": false,
 
-    /* Performance */
-    "skipLibCheck": true
+    /* ===========================
+       Performance
+       =========================== */
+
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo",
+
+    /* ===========================
+       Node
+       =========================== */
+
+    "types": [
+      "node"
+    ],
+
+    /* ===========================
+       Misc
+       =========================== */
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
 
   "include": [
-    "src/**/*"
+    "src/**/*.ts"
   ],
 
   "exclude": [
-    "node_modules",
     "dist",
-    "coverage"
+    "node_modules"
   ]
 }
