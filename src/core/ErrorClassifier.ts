@@ -1,9 +1,9 @@
 // ============================================================
-// FILE: src/types/ToolTypes.ts
+// FILE: src/core/ErrorClassifier.ts
 // VERSION: Shim
 // COMMIT: 8 (Smart Retry Classification - Refactored)
 // STATUS: Draft 🟡
 // CHANGELOG:
-//   Entry point for ToolTypes v7.9.0
+//   Entry point for ErrorClassifier v8.0.1
 // ============================================================
-export * from "./ToolTypes.v7.9.0.js";
+export { ErrorClassifier } from "./ErrorClassifier.v8.0.1.js";
