@@ -1,9 +1,1 @@
-// ============================================================
-// FILE: src/types/ToolTypes.ts
-// VERSION: Shim
-// COMMIT: 8 (Smart Retry Classification - Refactored)
-// STATUS: Draft 🟡
-// CHANGELOG:
-//   Entry point for ToolTypes v7.9.0
-// ============================================================
-export * from "./ToolTypes.v7.9.0.js";
+export * from "./ToolTypes.v7.10.0.js";

@@ -1,19 +1,3 @@
-// ============================================================
-// FILE: src/core/RetryPolicy.v8.0.1.ts
-// VERSION: v8.0.1
-// COMMIT: 8 (Smart Retry Classification - Refactored)
-// STATUS: Draft 🟡
-// CHANGELOG:
-//   v8.0.1 - Critical fixes based on review findings:
-//            - FIXED: calculateDelay() now uses resolved policy parameters
-//            - FIXED: retryableCategories is now deep-frozen
-//            - ADDED: Runtime validation for retryableCategories (only valid ErrorCategory values)
-//            - ADDED: respectRetryAfterMs option (INTENTIONAL OVERRIDE of maxDelayMs)
-//            - FIXED: resolvePolicy() ALWAYS sanitizes/freeze output (even without toolPolicy)
-//            - CLARIFIED: defaultBackoffStrategy only used for getBackoffStrategy()
-//   v8.0.0 - Initial release
-// ============================================================
-
 import {
   IRetryPolicy,
   IBackoffStrategy,
@@ -29,13 +13,9 @@ import {
   ExponentialJitterStrategy,
 } from "./BackoffStrategies.js";
 
-// ============================================================
-// Valid Error Categories (for validation)
-// ============================================================
-
 const VALID_CATEGORIES: ReadonlySet<ErrorCategory> = new Set<ErrorCategory>([
   "TRANSIENT", "TIMEOUT", "RATE_LIMIT", "NETWORK",
-  "VALIDATION", "AUTH", "NOT_FOUND", "CONFLICT", "UNKNOWN",
+  "VALIDATION", "AUTH", "NOT_FOUND", "CONFLICT", "ABORT", "UNKNOWN",
 ]);
 
 export const DEFAULT_RETRY_POLICY_CONFIG: RetryPolicyConfig = Object.freeze({
@@ -57,6 +37,7 @@ const NON_RETRYABLE_CATEGORIES: ReadonlySet<ErrorCategory> = new Set([
   "VALIDATION",
   "AUTH",
   "NOT_FOUND",
+  "ABORT",
   "UNKNOWN",
 ]);
 
@@ -74,18 +55,6 @@ interface MutableRetryPolicyConfig {
   retryableCategories?: readonly ErrorCategory[];
   respectRetryAfterMs?: boolean;
 }
-
-// ============================================================
-// sanitizePolicy: Runtime validation + sanitization
-// 
-// VALIDATION:
-// - retryableCategories: only valid ErrorCategory values accepted
-// - numeric fields: clamped to safe ranges
-// - boolean fields: coerced to boolean
-// 
-// If all categories in retryableCategories are invalid, returns undefined
-// (caller will fall back to default)
-// ============================================================
 
 function sanitizePolicy(policy: Partial<RetryPolicyConfig>): MutableRetryPolicyConfig {
   const sanitized: MutableRetryPolicyConfig = {};
@@ -115,16 +84,13 @@ function sanitizePolicy(policy: Partial<RetryPolicyConfig>): MutableRetryPolicyC
   }
 
   if (policy.retryableCategories !== undefined) {
-    // RUNTIME VALIDATION: Filter out invalid categories
     const validCategories = policy.retryableCategories.filter(
       cat => VALID_CATEGORIES.has(cat as ErrorCategory)
     );
     
-    // If all categories were invalid, return undefined (will fall back to default)
     if (validCategories.length === 0) {
       sanitized.retryableCategories = undefined;
     } else {
-      // Deep freeze the validated array
       sanitized.retryableCategories = Object.freeze([...validCategories] as ErrorCategory[]);
     }
   }
@@ -152,33 +118,22 @@ function buildBackoffStrategyFromPolicy(policy: RetryPolicyConfig): IBackoffStra
 }
 
 export class DefaultRetryPolicy implements IRetryPolicy {
-  // NOTE: This strategy is ONLY used by getBackoffStrategy() for external consumers.
-  // calculateDelay() builds its own strategy from the resolved policy parameters.
-  // This separation allows per-call policy overrides while maintaining a default for inspection.
+  readonly name = "DefaultRetryPolicy";
+  readonly type: "retry" = "retry";
+  
   private readonly defaultBackoffStrategy: IBackoffStrategy;
 
   constructor(defaultBackoffStrategy?: IBackoffStrategy) {
     this.defaultBackoffStrategy = defaultBackoffStrategy ?? new ExponentialJitterStrategy(100, 2, 2000);
   }
 
-  // ========================================================
-  // resolvePolicy: ALWAYS sanitizes and freezes output
-  // 
-  // GUARANTEE: Output is always immutable, regardless of input mutability.
-  // Even if toolPolicy is undefined, defaultPolicy is sanitized/frozen.
-  // 
-  // VALIDATION: retryableCategories are validated at runtime.
-  // Invalid categories are filtered out. If all are invalid, falls back to default.
-  // ========================================================
   public resolvePolicy(
     defaultPolicy: RetryPolicyConfig,
     toolPolicy?: Partial<RetryPolicyConfig>
   ): RetryPolicyConfig {
-    // ALWAYS sanitize defaultPolicy first (ensures immutability)
     const sanitizedDefault = sanitizePolicy(defaultPolicy);
 
     if (!toolPolicy) {
-      // No tool policy: return sanitized default (with fallbacks to DEFAULT_RETRY_POLICY_CONFIG)
       return Object.freeze({
         maxRetries: sanitizedDefault.maxRetries ?? defaultPolicy.maxRetries,
         baseDelayMs: sanitizedDefault.baseDelayMs ?? defaultPolicy.baseDelayMs,
@@ -190,7 +145,6 @@ export class DefaultRetryPolicy implements IRetryPolicy {
       });
     }
 
-    // Tool policy exists: sanitize it and merge with sanitized default
     const sanitizedTool = sanitizePolicy(toolPolicy);
 
     return Object.freeze({
@@ -242,19 +196,13 @@ export class DefaultRetryPolicy implements IRetryPolicy {
     context: ExecutionContext,
     policy: RetryPolicyConfig
   ): number {
-    // Handle retryAfterMs
     if (error.retryAfterMs !== undefined && Number.isFinite(error.retryAfterMs) && error.retryAfterMs >= 0) {
-      // DESIGN DECISION: respectRetryAfterMs is an INTENTIONAL OVERRIDE of maxDelayMs.
-      // When true, the upstream hint is respected exactly (no cap).
-      // This allows explicit control when upstream knows better (e.g., rate limit windows).
-      // When false (default), maxDelayMs acts as a hard cap to prevent excessive delays.
       if (policy.respectRetryAfterMs) {
-        return error.retryAfterMs;  // No cap - intentional override
+        return error.retryAfterMs;
       }
-      return Math.min(error.retryAfterMs, policy.maxDelayMs);  // Hard cap
+      return Math.min(error.retryAfterMs, policy.maxDelayMs);
     }
 
-    // Build strategy from RESOLVED policy parameters
     const strategy = buildBackoffStrategyFromPolicy(policy);
     
     const errorWithoutRetryAfter: ToolExecutionError = {
