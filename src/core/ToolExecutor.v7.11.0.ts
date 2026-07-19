@@ -1,3 +1,20 @@
+// ============================================================
+// NOTE ON VERSIONING:
+//
+// This file intentionally remains v7.11.0 rather than v10.x.x.
+// Commit 10 introduces the Service Layer Foundation, but this
+// change is only a minor backward-compatible extension to the
+// existing v7.x Runtime API.
+//
+// The optional DI resolver parameter is accepted as an
+// integration point only. It does not alter execution behavior,
+// runtime semantics, tool invocation flow, or existing public
+// contracts.
+//
+// Therefore, this file preserves v7.x versioning while remaining
+// compatible with the v10.0.0 service-layer foundation.
+// ============================================================
+
 import { ITool, Context } from "../types/RuntimeTypes.js";
 import {
   IToolExecutor,
@@ -10,14 +27,13 @@ import {
   RetryPolicyConfig,
   ToolMetadata,
 } from "../types/ToolTypes.js";
+import { IServiceResolver } from "../types/ServiceTypes.js";
 import { ErrorClassifier } from "./ErrorClassifier.js";
 import { DefaultRetryPolicy, DEFAULT_RETRY_POLICY_CONFIG } from "./RetryPolicy.js";
 import { ExecutionEngine } from "./ExecutionEngine.js";
 
 class SystemClock implements IExecutionClock {
-  public now(): number {
-    return Date.now();
-  }
+  public now(): number { return Date.now(); }
 }
 
 export const DEFAULT_TOOL_EXECUTOR_CONFIG: ToolExecutorConfig = Object.freeze({
@@ -31,10 +47,8 @@ export class ToolExecutor implements IToolExecutor {
   private readonly config: ToolExecutorConfig;
   private readonly resolvedRetryPolicy: RetryPolicyConfig;
   private readonly engine: ExecutionEngine;
-  // FIX: toolMetadata now fully immutable (Map itself is frozen via readonly + defensive copy)
-  private readonly toolMetadata: ReadonlyMap<string, Readonly<ToolMetadata>>;
+  private readonly toolMetadata: Map<string, ToolMetadata>;
   private executionCounter: number;
-  // FIX: Instance-level UUID prefix to avoid collision across multiple executors
   private readonly instanceId: string;
 
   constructor(
@@ -42,7 +56,8 @@ export class ToolExecutor implements IToolExecutor {
     errorClassifier?: IErrorClassifier,
     retryPolicy?: IRetryPolicy,
     clock?: IExecutionClock,
-    observers: readonly IExecutionObserver[] = []
+    observers: readonly IExecutionObserver[] = [],
+    container?: IServiceResolver
   ) {
     this.resolvedRetryPolicy = config.retryPolicy
       ? Object.freeze({ ...DEFAULT_RETRY_POLICY_CONFIG, ...config.retryPolicy })
@@ -55,26 +70,20 @@ export class ToolExecutor implements IToolExecutor {
     });
 
     this.engine = new ExecutionEngine(
-      {
-        defaultTimeoutMs: this.config.defaultTimeoutMs,
-        retryPolicy: this.resolvedRetryPolicy,
-      },
+      { defaultTimeoutMs: this.config.defaultTimeoutMs, retryPolicy: this.resolvedRetryPolicy },
       errorClassifier ?? new ErrorClassifier(),
       retryPolicy ?? new DefaultRetryPolicy(),
       clock ?? new SystemClock(),
       observers
     );
 
-    // FIX: Use internal mutable Map but expose as ReadonlyMap
-    this.toolMetadata = new Map<string, Readonly<ToolMetadata>>();
+    this.toolMetadata = new Map();
     this.executionCounter = 0;
-    // FIX: Instance-level UUID for collision-safe execution IDs
     this.instanceId = this.generateInstanceId();
   }
 
   public registerToolMetadata(toolName: string, metadata: ToolMetadata): void {
     const frozenMetadata = this.deepFreezeMetadata(metadata);
-    // Internal mutation allowed, but external view is ReadonlyMap
     (this.toolMetadata as Map<string, Readonly<ToolMetadata>>).set(toolName, frozenMetadata);
   }
 
@@ -90,53 +99,32 @@ export class ToolExecutor implements IToolExecutor {
   }
 
   public async execute<TInput = unknown, TOutput = unknown>(
-    tool: ITool<TInput, TOutput>,
-    input: TInput,
-    context: Context,
-    signal?: AbortSignal
+    tool: ITool<TInput, TOutput>, input: TInput, context: Context, signal?: AbortSignal
   ): Promise<ToolResult<TOutput>> {
     const executionId = this.generateExecutionId();
     const metadata = this.toolMetadata.get(tool.name);
-    const result = await this.engine.execute(
-      tool, input, context, executionId,
-      0, signal, metadata
-    );
+    const result = await this.engine.execute(tool, input, context, executionId, 0, signal, metadata);
     return result.result;
   }
 
   public async executeWithTimeout<TInput = unknown, TOutput = unknown>(
-    tool: ITool<TInput, TOutput>,
-    input: TInput,
-    context: Context,
-    timeoutMs: number = this.config.defaultTimeoutMs,
-    signal?: AbortSignal
+    tool: ITool<TInput, TOutput>, input: TInput, context: Context, timeoutMs: number = this.config.defaultTimeoutMs, signal?: AbortSignal
   ): Promise<ToolResult<TOutput>> {
     const executionId = this.generateExecutionId();
     const metadata = this.toolMetadata.get(tool.name);
-    const result = await this.engine.execute(
-      tool, input, context, executionId,
-      0, signal, metadata, timeoutMs
-    );
+    const result = await this.engine.execute(tool, input, context, executionId, 0, signal, metadata, timeoutMs);
     return result.result;
   }
 
   public async executeWithRetry<TInput = unknown, TOutput = unknown>(
-    tool: ITool<TInput, TOutput>,
-    input: TInput,
-    context: Context,
-    maxRetries?: number,
-    signal?: AbortSignal
+    tool: ITool<TInput, TOutput>, input: TInput, context: Context, maxRetries?: number, signal?: AbortSignal
   ): Promise<ToolResult<TOutput>> {
     const executionId = this.generateExecutionId();
     const metadata = this.toolMetadata.get(tool.name);
-    const result = await this.engine.execute(
-      tool, input, context, executionId,
-      maxRetries, signal, metadata
-    );
+    const result = await this.engine.execute(tool, input, context, executionId, maxRetries, signal, metadata);
     return result.result;
   }
 
-  // FIX: Collision-safe execution ID with instance-level prefix
   private generateInstanceId(): string {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substring(2, 8);
