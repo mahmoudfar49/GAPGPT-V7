@@ -1,9 +1,9 @@
 // ============================================================
 // FILE: src/types/ServiceTypes.ts
 // VERSION: Shim
-// COMMIT: 10 (Service Layer Foundation)
+// COMMIT: 11 (DI Integration)
 // STATUS: Draft 🟡
 // CHANGELOG:
-//   Entry point for ServiceTypes v10.0.0
+//   Entry point for ServiceTypes v10.1.0
 // ============================================================
-export * from './ServiceTypes.v10.0.0.js';
+export * from './ServiceTypes.v10.1.0.js';

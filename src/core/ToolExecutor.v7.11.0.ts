@@ -27,7 +27,7 @@ import {
   RetryPolicyConfig,
   ToolMetadata,
 } from "../types/ToolTypes.js";
-import { IServiceResolver } from "../types/ServiceTypes.js";
+import { IRuntimeResolver } from "../types/ServiceTypes.js"; // UPDATED: IRuntimeResolver
 import { ErrorClassifier } from "./ErrorClassifier.js";
 import { DefaultRetryPolicy, DEFAULT_RETRY_POLICY_CONFIG } from "./RetryPolicy.js";
 import { ExecutionEngine } from "./ExecutionEngine.js";
@@ -57,7 +57,7 @@ export class ToolExecutor implements IToolExecutor {
     retryPolicy?: IRetryPolicy,
     clock?: IExecutionClock,
     observers: readonly IExecutionObserver[] = [],
-    container?: IServiceResolver
+    resolver?: IRuntimeResolver // UPDATED: IRuntimeResolver
   ) {
     this.resolvedRetryPolicy = config.retryPolicy
       ? Object.freeze({ ...DEFAULT_RETRY_POLICY_CONFIG, ...config.retryPolicy })
@@ -74,7 +74,8 @@ export class ToolExecutor implements IToolExecutor {
       errorClassifier ?? new ErrorClassifier(),
       retryPolicy ?? new DefaultRetryPolicy(),
       clock ?? new SystemClock(),
-      observers
+      observers,
+      resolver // Pass through to engine for consistent DI chain
     );
 
     this.toolMetadata = new Map();
