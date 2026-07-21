@@ -1,2 +1,2 @@
-// STATUS: FROZEN 🟢 | Shim
-export * from './ProviderContracts.v12.0.0.js';
+// STATUS: FROZEN 🟢 | Shim (Updated to v13.0.0)
+export * from './ProviderContracts.v13.0.0.js';

@@ -1,16 +1,16 @@
 // ============================================================
 // GAPGPT V7
-// Main Entry
-// Commit 12 Stable (Focused on Provider Integration)
+// Main Entry Point
+// Commit 13 Stable (Market Data Provider Foundation)
 // ============================================================
-import { runProviderIntegrationTest } from "./test/ProviderIntegration.v12.0.0.test.js";
+import { runMarketDataProviderTest } from "./test/MarketDataProvider.v13.0.0.test.js";
 
 async function main(): Promise<void> {
   console.log("\n======================================");
-  console.log("GAPGPT V7 - Provider Integration Test (Commit 12)");
+  console.log("GAPGPT V7 - Market Data Provider Test (Commit 13)");
   console.log("======================================\n");
 
-  await runProviderIntegrationTest();
+  await runMarketDataProviderTest();
 
   console.log("\n======================================");
   console.log("Test completed successfully.");
