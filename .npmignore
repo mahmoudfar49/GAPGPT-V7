@@ -1,0 +1,12 @@
+src/
+tests/
+tsconfig.json
+*.tgz
+*.tar.gz
+.git/
+.gitignore
+.vscode/
+.idea/
+backups/
+output/
+node_modules/
