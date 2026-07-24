@@ -2,15 +2,14 @@
 // FILE: src/infrastructure/TseMarketProvider.v13.0.0.ts
 // VERSION: v13.0.0
 // COMMIT: 13 (Market Data Provider Foundation)
-// STATUS: Draft 🟡
-// CHANGELOG: First market data provider with Cache-Aside pattern
+// STATUS: FROZEN 🟢 (Updated for v14 Type Compatibility)
 // ============================================================
 
 import { BaseProvider } from "../core/BaseProvider.js";
 import { IMarketDataProvider, IMemoryProvider } from "../types/ProviderContracts.js";
 import { 
   MarketSymbol, 
-  OhlcvCandle, 
+  TseDailyCandle, 
   ProviderFetchOptions, 
   ProviderHealthStatus
 } from "../types/MarketDataTypes.js";
@@ -24,24 +23,18 @@ export class TseMarketProvider extends BaseProvider implements IMarketDataProvid
     capabilities: Object.freeze(["getSymbolInfo", "getCandles", "getHealthStatus"]),
   });
 
-  private fetchCount = 0; // For testing cache effectiveness
+  private fetchCount = 0;
 
   constructor(private readonly cache: IMemoryProvider) {
     super();
   }
 
-  protected async onInitialize(): Promise<void> {
-    // No-op for mock provider
-  }
-
-  protected async onDispose(): Promise<void> {
-    // No-op for mock provider
-  }
+  protected async onInitialize(): Promise<void> {}
+  protected async onDispose(): Promise<void> {}
 
   public async getSymbolInfo(symbol: string): Promise<MarketSymbol> {
     this.ensureState(ProviderState.READY, "getSymbolInfo");
     
-    // Mock implementation
     return {
       id: `TSE:${symbol}`,
       ticker: symbol,
@@ -49,30 +42,26 @@ export class TseMarketProvider extends BaseProvider implements IMarketDataProvid
       market: 'TSE',
       currency: 'IRR',
       isActive: true,
+      lastUpdated: Date.now(), // FIX: Added for v14 compatibility
     };
   }
 
-  public async getCandles(options: ProviderFetchOptions): Promise<OhlcvCandle[]> {
+  public async getCandles(options: ProviderFetchOptions): Promise<TseDailyCandle[]> {
     this.ensureState(ProviderState.READY, "getCandles");
 
     const cacheKey = `candles:${options.symbol}:${options.interval}`;
-    const useCache = options.useCache !== false; // Default: true
+    const useCache = options.useCache !== false;
 
-    // 1. Check cache first (Cache-Aside pattern)
     if (useCache) {
       const cached = await this.cache.get(cacheKey);
       if (cached !== undefined) {
-        return cached as OhlcvCandle[];
+        return cached as TseDailyCandle[];
       }
     }
 
-    // 2. Cache miss: Fetch data (Mock implementation)
     this.fetchCount++;
     const candles = this.generateMockCandles(options);
 
-    // 3. Store in cache
-    // NOTE: TTL-based expiration will be added when MemoryProvider supports it natively.
-    // For now, we use simple cache-aside pattern.
     if (useCache) {
       await this.cache.put(cacheKey, candles);
     }
@@ -90,29 +79,26 @@ export class TseMarketProvider extends BaseProvider implements IMarketDataProvid
     };
   }
 
-  /**
-   * Get fetch count (for testing cache effectiveness)
-   */
   public getFetchCount(): number {
     return this.fetchCount;
   }
 
-  /**
-   * Generate mock OHLCV candles with UTC timestamps
-   */
-  private generateMockCandles(options: ProviderFetchOptions): OhlcvCandle[] {
-    const candles: OhlcvCandle[] = [];
+  private generateMockCandles(options: ProviderFetchOptions): TseDailyCandle[] {
+    const candles: TseDailyCandle[] = [];
     const now = Date.now();
     const limit = options.limit || 10;
     
     for (let i = 0; i < limit; i++) {
       candles.push({
-        timestamp: now - i * 60000, // UTC Epoch ms
+        timestamp: now - i * 60000,
         open: 100 + Math.random() * 10,
         high: 105 + Math.random() * 10,
         low: 95 + Math.random() * 10,
         close: 102 + Math.random() * 10,
         volume: 500000 + Math.random() * 100000,
+        totalValue: 0,        // FIX: Added for v14 TseDailyCandle compatibility
+        tradeCount: 0,        // FIX: Added for v14 TseDailyCandle compatibility
+        isAdjusted: true,     // FIX: Added for v14 TseDailyCandle compatibility
       });
     }
 
